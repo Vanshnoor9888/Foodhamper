@@ -54,8 +54,6 @@ def predict_for_days(start_date, days):
         ax.legend()
         ax.grid(True)
 
-        # Format x-axis for dates
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
         plt.xticks(rotation=45)
         plt.tight_layout()
 
@@ -116,9 +114,6 @@ def machine_learning_modeling():
             total_hampers = predictions_df["Predicted Hampers"].sum()
             st.success(f"For {days} days starting from {start_date}, "
                        f"you will need approximately {int(total_hampers)} food hampers.")
-
-# Run the Streamlit app
-# machine_learning_modeling()
 
 # Main App Logic
 def main():
