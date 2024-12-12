@@ -100,6 +100,7 @@ def exploratory_data_analysis():
     """, unsafe_allow_html=True)
 
 # Page 3: Machine Learning Modeling
+# Streamlit application
 def machine_learning_modeling():
     st.title("Food Hamper Forecasting")
 
@@ -114,11 +115,13 @@ def machine_learning_modeling():
 
     if st.button("Predict Food Hampers"):
         # Call the prediction function with the selected start date and number of days
-        predictions, fig = predict_for_days(start_date.strftime("%Y-%m-%d"), int(days))
-        
-        if fig:
+        predictions_df, fig = predict_for_days(start_date.strftime("%Y-%m-%d"), int(days))
+
+        if predictions_df is not None:
             st.pyplot(fig)
-            total_hampers = sum(predictions)
+            st.write("### Forecasted Food Hampers")
+            st.write(predictions_df)
+            total_hampers = predictions_df["Predicted Hampers"].sum()
             st.success(f"For {days} days starting from {start_date}, "
                        f"you will need approximately {int(total_hampers)} food hampers.")
 
