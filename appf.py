@@ -92,14 +92,23 @@ def machine_learning_modeling():
 
     # Subsection: SARIMA Model for Food Hampers
     st.subheader("Food Hamper Forecasting (SARIMA Model)")
+
+    # Input for start date
+    start_date = st.date_input("Select the start date:", datetime.today())
+
+    # Input for the number of days to forecast
     days = st.number_input("Enter the number of days to forecast:", min_value=1, step=1, value=1)
 
     if st.button("Predict Food Hampers"):
-        predictions, fig = predict_for_days(int(days))
+        # Call the prediction function with the selected start date and number of days
+        predictions, fig = predict_for_days(start_date.strftime("%Y-%m-%d"), int(days))
+        
         if fig:
             st.pyplot(fig)
             total_hampers = sum(predictions)
-            st.success(f"For {days} days, you will need approximately {int(total_hampers)} food hampers.")
+            st.success(f"For {days} days starting from {start_date}, "
+                       f"you will need approximately {int(total_hampers)} food hampers.")
+
 # Main App Logic
 def main():
     st.sidebar.title("Food Hamper Prediction")
