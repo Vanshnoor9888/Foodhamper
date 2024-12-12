@@ -102,7 +102,7 @@ def predict_for_days(start_date, days):
 # Page 1: Dashboard
 def dashboard():
         # Add an image
-    st.image(""C:\Users\naran\OneDrive\Desktop\downloads.png".jpg", caption="Machine Learning for Hamper Distribution", use_column_width=True)
+    st.image("C:\Users\naran\OneDrive\Desktop\downloads.png", caption="Machine Learning for Hamper Distribution", use_column_width=True)
 
     st.subheader("💡 Project Overview:")
     inspiration = '''Project Overview We are collaborating on a machine learning project with a food hamper
