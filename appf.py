@@ -84,6 +84,26 @@ def display_sarima_graphs(train_df, test_df, df, forecast_values_boxcox, confide
     fig2 = plot_original_scale_forecast(df, test_df, forecast_values_original)
     st.pyplot(fig2)
 
+# New Page: Detailed Analysis
+def detailed_analysis():
+    st.title("Detailed SARIMA Analysis")
+    st.write("This section provides in-depth analysis of SARIMA model predictions and their performance.")
+
+    # Simulated Data for Demonstration
+    st.subheader("Analysis Metrics")
+    st.write("### R-squared Value")
+    r_squared = np.random.random()  # Replace with actual R-squared calculation
+    st.write(f"The R-squared value of the model is: {r_squared:.2f}")
+
+    st.write("### Residual Analysis")
+    residuals = np.random.random(100) - 0.5  # Replace with actual residual data
+    fig, ax = plt.subplots()
+    ax.hist(residuals, bins=20, color='blue', alpha=0.7)
+    ax.set_title("Residual Distribution")
+    ax.set_xlabel("Residuals")
+    ax.set_ylabel("Frequency")
+    st.pyplot(fig)
+
 # Example call within Streamlit
 def main():
     # Simulate data and forecasts for demonstration purposes
@@ -107,7 +127,13 @@ def main():
     })
     forecast_values_original = np.random.randint(50, 200, size=len(test_df))
 
-    display_sarima_graphs(train_df, test_df, df, forecast_values_boxcox, confidence_intervals_boxcox, forecast_values_original)
+    st.sidebar.title("SARIMA Forecast")
+    app_page = st.sidebar.radio("Select a Page", ["Forecast Analysis", "Detailed Analysis"])
+
+    if app_page == "Forecast Analysis":
+        display_sarima_graphs(train_df, test_df, df, forecast_values_boxcox, confidence_intervals_boxcox, forecast_values_original)
+    elif app_page == "Detailed Analysis":
+        detailed_analysis()
 
 if __name__ == "__main__":
     main()
