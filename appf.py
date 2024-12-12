@@ -45,10 +45,6 @@ def predict_for_days(start_date, days):
         forecast_dates = future_exog.index
         prediction_df = pd.DataFrame({"Date": forecast_dates, "Predicted Hampers": predictions})
 
-        # Print the predictions for each date
-        print("Predicted Food Hampers:")
-        print(prediction_df)
-
         # Plot the predictions
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.plot(forecast_dates, predictions, label="Forecast", marker="o")
@@ -58,20 +54,15 @@ def predict_for_days(start_date, days):
         ax.legend()
         ax.grid(True)
 
+        # Format x-axis for dates
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
         plt.xticks(rotation=45)
         plt.tight_layout()
-        plt.show()
 
         return prediction_df, fig
     except Exception as e:
         print(f"Error during prediction: {str(e)}")
         return None, None
-
-# Example usage
-# Specify the start date and number of days for forecasting
-start_date = "2024-12-12"
-days = 10
-predictions, fig = predict_for_days(start_date, days)
 
 # Page 1: Dashboard
 def dashboard():
@@ -124,6 +115,7 @@ def machine_learning_modeling():
             total_hampers = predictions_df["Predicted Hampers"].sum()
             st.success(f"For {days} days starting from {start_date}, "
                        f"you will need approximately {int(total_hampers)} food hampers.")
+
 
 # Main App Logic
 def main():
