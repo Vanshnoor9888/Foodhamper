@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
 import statsmodels.api as sm
 # Load the dataset with a specified encoding
-data = pd.read_csv('mergedfoodandclients.csv', encoding='latin1')
+data = pd.read_csv('dataframe.csv', encoding='latin1')
 
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
