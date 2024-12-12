@@ -23,9 +23,9 @@ def generate_exog(start_date, days):
     Replace this with your logic to fetch or estimate exog variables.
     """
     future_exog = {
-        "scheduled_pickup": [100 + i * 2 for i in range(days)],
-        "scheduled_pickup_lag_7": [90 + i for i in range(days)],
-        "scheduled_pickup_lag_14": [80 + i for i in range(days)],
+        "scheduled_pickup": [100 + i * 2 + np.random.randint(-10, 10) for i in range(days)],
+        "scheduled_pickup_lag_7": [90 + i + np.random.randint(-5, 5) for i in range(days)],
+        "scheduled_pickup_lag_14": [80 + i + np.random.randint(-3, 3) for i in range(days)],
     }
     return pd.DataFrame(future_exog, index=pd.date_range(start=start_date, periods=days, freq="D"))
 
