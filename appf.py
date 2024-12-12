@@ -7,11 +7,17 @@ import matplotlib.pyplot as plt
 # Load the dataset with a specified encoding
 data = pd.read_csv('mergedfoodandclients.csv', encoding='latin1')
 
+from datetime import datetime, timedelta
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import joblib
+
 # Load SARIMA model
 sarima_model = joblib.load('sarima_model.pkl')
 
 # Function to generate exogenous variables
-def generate_exog(days):
+def generate_exog(start_date, days):
     """
     Generate exogenous values for the specified number of days.
     Replace this with your logic to fetch or estimate exog variables.
@@ -21,33 +27,37 @@ def generate_exog(days):
         "scheduled_pickup_lag_7": [90 + i for i in range(days)],
         "scheduled_pickup_lag_14": [80 + i for i in range(days)],
     }
-    return pd.DataFrame(future_exog)
+    return pd.DataFrame(future_exog, index=pd.date_range(start=start_date, periods=days, freq="D"))
 
 # Function to predict using SARIMA and plot
-def predict_for_days(days):
+def predict_for_days(start_date, days):
     """
     Predict the total food hampers needed for a specified number of days and plot.
     """
     try:
         # Generate exogenous variables
-        future_exog = generate_exog(days)
+        future_exog = generate_exog(start_date, days)
 
         # Forecast using SARIMA model
         predictions = sarima_model.forecast(steps=days, exog=future_exog)
 
         # Plot the predictions
-        time_steps = np.arange(1, days + 1)
-        fig, ax = plt.subplots(figsize=(8, 5))
-        ax.plot(time_steps, predictions, label="Forecast", marker="o")
-        ax.set_xlabel("Time Step")
+        forecast_dates = future_exog.index
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.plot(forecast_dates, predictions, label="Forecast", marker="o")
+        ax.set_xlabel("Date")
         ax.set_ylabel("Predicted Value")
         ax.set_title("SARIMA Model Forecast")
         ax.legend()
         ax.grid(True)
 
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.show()
+
         return predictions, fig
     except Exception as e:
-        st.error(f"Error during prediction: {str(e)}")
+        print(f"Error during prediction: {str(e)}")
         return None, None
 
 # Page 1: Dashboard
