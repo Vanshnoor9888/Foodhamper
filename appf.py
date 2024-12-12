@@ -6,17 +6,24 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
 import statsmodels.api as sm
 from scipy.special import inv_boxcox
-import streamlit as st
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.metrics import r2_score
-import statsmodels.api as sm
 from datetime import datetime, timedelta
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import joblib
+import google.generativeai as genai
+import os
+# Set up the API key
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY', st.secrets.get("GOOGLE_API_KEY"))
+genai.configure(api_key=GOOGLE_API_KEY)
+def generate_response(prompt):
+    try:
+        model = genai.GenerativeModel('gemini-pro')
+        response = model.generate_content(prompt)  # Pass the prompt directly
+
+        # Debug: Print the response structure
+        # st.write(response) # Comment out for brevity
+
+        return response.text  # Use 'text' attribute instead of 'generated_text'
+    except Exception as e:
+        st.error(f"Error generating response: {e}")
+        return "Sorry, I couldn't process your request."
 
 # Load SARIMA model
 sarima_model = joblib.load('sarima_model.pkl')
@@ -192,13 +199,30 @@ def map():
     st.title("Map for Food Hamper Prediction.")
     st.markdown("""<iframe src="https://www.google.com/maps/d/u/0/embed?mid=1Uf7Agld8GzoH9-fzNNsUpmCN-0X8BEQ&ehbc=2E312F" width="640" height="480"></iframe>
     """, unsafe_allow_html=True)
+#Page 6
+def chatbot():
+    st.title("Chatbot")
+    st.write("Ask me anything about food hamper prediction.")
+
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+
+    user_input = st.text_input("You:", key="input")
+    if st.button("Send"):
+        if user_input:
+            st.session_state.chat_history.append({"role": "user", "content": user_input})
+            response = generate_response(user_input)
+            st.session_state.chat_history.append({"role": "assistant", "content": response})
+
+    for message in st.session_state.chat_history:
+        st.write(f"{message['role'].capitalize()}: {message['content']}")
 
 # Main App Logic
 def main():
     st.sidebar.title("Food Hamper Prediction")
     app_page = st.sidebar.radio(
         "Select a Page", 
-        ["Dashboard", "Data visualizations", "Sarima Model Predictions", "SARIMA Forecast Graphs", "Map for Food Hamper Prediction"]
+        ["Dashboard", "Data visualizations", "Sarima Model Predictions", "SARIMA Forecast Graphs", "Map for Food Hamper Prediction", "Chatbot"]
     )
 
     if app_page == "Dashboard":
@@ -211,6 +235,8 @@ def main():
         sarima_forecast_graphs()
     elif app_page == "Map for Food Hamper Prediction":
         map()
+    elif app_page == "Chatbot":
+        chatbot()
 
 if __name__ == "__main__":
     main()
