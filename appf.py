@@ -12,9 +12,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
 import statsmodels.api as sm
-# Load the dataset with a specified encoding
-data = pd.read_csv('dataframe.csv', encoding='latin1')
-
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,6 +20,12 @@ import joblib
 
 # Load SARIMA model
 sarima_model = joblib.load('sarima_model.pkl')
+# Load the dataset with a specified encoding
+data = pd.read_csv('dataframe.csv', encoding='latin1')
+
+# Load SARIMA model
+sarima_model = joblib.load('sarima_model.pkl')
+
 # Function to plot Box-Cox transformed graph
 def plot_boxcox_graph(train_df, test_df, forecast_values_boxcox, confidence_intervals_boxcox):
     fig, ax = plt.subplots(figsize=(12, 6))
@@ -49,7 +52,6 @@ def plot_original_graph(df, test_df, forecast_values_original):
     ax.legend()
     plt.xticks(rotation=45)
     return fig
-
 # Function to generate exogenous variables
 def generate_exog(start_date, days):
     """
@@ -148,21 +150,40 @@ def machine_learning_modeling():
             total_hampers = predictions_df["Predicted Hampers"].sum()
             st.success(f"For {days} days starting from {start_date}, "
                        f"you will need approximately {int(total_hampers)} food hampers.")
+
 # Page 4: Display SARIMA Forecast Graphs
 def sarima_forecast_graphs():
     st.title("SARIMA Forecast Graphs")
 
-    # Placeholder data for demonstration
-    # Replace this with actual data from your analysis
+    # Convert 'date' column to datetime
+    data['date'] = pd.to_datetime(data['date'])
+
+    # Prepare train and test sets
     train_df = data.iloc[:int(len(data) * 0.8)]  # First 80% of the data
     test_df = data.iloc[int(len(data) * 0.8):]  # Last 20% of the data
-    
-    forecast_values_boxcox = np.random.rand(len(test_df))  # Simulated forecast values (replace with actual)
+
+    # Generate exogenous variables for test set
+    future_exog = test_df[['scheduled_pickup', 'scheduled_pickup_lag_7', 'scheduled_pickup_lag_14']]
+
+    # Forecast using SARIMA model
+    forecast_values_boxcox = sarima_model.forecast(steps=len(test_df), exog=future_exog)
     confidence_intervals_boxcox = pd.DataFrame({
-        0: forecast_values_boxcox - 0.1,  # Lower bound
-        1: forecast_values_boxcox + 0.1   # Upper bound
+        0: forecast_values_boxcox - 0.1,  # Placeholder lower bound (adjust with actual)
+        1: forecast_values_boxcox + 0.1   # Placeholder upper bound (adjust with actual)
     })
-    forecast_values_original = forecast_values_boxcox * 100  # Simulated reverse Box-Cox transformation
+
+    # Reverse Box-Cox transformation (placeholder for actual lambda)
+    forecast_values_original = np.exp(forecast_values_boxcox)  # Adjust transformation as needed
+
+    # Plot the Box-Cox transformed graph
+    st.subheader("Forecast (Box-Cox Transformed Data)")
+    fig1 = plot_boxcox_graph(train_df, test_df, forecast_values_boxcox, confidence_intervals_boxcox)
+    st.pyplot(fig1)
+
+    # Plot the reversed transformation graph
+    st.subheader("Forecast (Original Scale)")
+    fig2 = plot_original_graph(data, test_df, forecast_values_original)
+    st.pyplot(fig2)
 
 # Main App Logic
 def main():
@@ -180,5 +201,6 @@ def main():
         machine_learning_modeling()
     elif app_page == "SARIMA Forecast Graphs":
         sarima_forecast_graphs()
+
 if __name__ == "__main__":
     main()
