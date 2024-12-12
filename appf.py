@@ -1,12 +1,22 @@
 import streamlit as st
-import matplotlib.pyplot as plt
 import pandas as pd
+import joblib
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
 import statsmodels.api as sm
 from scipy.special import inv_boxcox
+# Load the dataset with a specified encoding
+data = pd.read_csv('mergedfoodandclients.csv', encoding='latin1')
 
-# Function to plot SARIMA Box-Cox Transformed Graph
+from datetime import datetime, timedelta
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import joblib
+
+# Load SARIMA model
+sarima_model = joblib.load('sarima_model.pkl')
 def plot_boxcox_forecast(train_df, test_df, forecast_values_boxcox, confidence_intervals_boxcox):
     fig, ax = plt.subplots(figsize=(12, 6))
 
@@ -70,7 +80,106 @@ def plot_original_scale_forecast(df, test_df, forecast_values_original):
 
     return fig
 
-# Streamlit app for displaying SARIMA graphs
+
+# Function to generate exogenous variables
+def generate_exog(start_date, days):
+    """
+    Generate exogenous values for the specified number of days.
+    Replace this with your logic to fetch or estimate exog variables.
+    """
+    future_exog = {
+        "scheduled_pickup": [100 + i * 2 for i in range(days)],
+        "scheduled_pickup_lag_7": [90 + i for i in range(days)],
+        "scheduled_pickup_lag_14": [80 + i for i in range(days)],
+    }
+    return pd.DataFrame(future_exog, index=pd.date_range(start=start_date, periods=days, freq="D"))
+
+# Function to predict using SARIMA and plot
+def predict_for_days(start_date, days):
+    """
+    Predict the total food hampers needed for a specified number of days and display results.
+    """
+    try:
+        # Generate exogenous variables
+        future_exog = generate_exog(start_date, days)
+
+        # Forecast using SARIMA model
+        predictions = sarima_model.forecast(steps=days, exog=future_exog)
+
+        # Create a DataFrame for predictions
+        forecast_dates = future_exog.index
+        prediction_df = pd.DataFrame({"Date": forecast_dates, "Predicted Hampers": predictions})
+
+        # Plot the predictions
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.plot(forecast_dates, predictions, label="Forecast", marker="o")
+        ax.set_xlabel("Date")
+        ax.set_ylabel("Predicted Food Hampers")
+        ax.set_title("SARIMA Model Forecast")
+        ax.legend()
+        ax.grid(True)
+
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+
+        return prediction_df, fig
+    except Exception as e:
+        print(f"Error during prediction: {str(e)}")
+        return None, None
+
+# Streamlit application
+# Page 1: Dashboard
+def dashboard():
+    st.subheader("💡 Project Overview:")
+    inspiration = '''Project Overview We are collaborating on a machine learning project with a food hamper
+    distribution company. The organization has shared their dataset with us and highlighted a number of challenges
+    they face, such as resource allocation and meeting rising demand. After analyzing their needs, we identified that predicting
+    the number of food hampers to be distributed in the near future could address several of these challenges. Our project will focus on
+    developing a model to accurately forecast hamper distribution, enabling better planning and resource management for the organization.
+    '''
+    st.write(inspiration)
+    st.subheader("Steps :")
+    hello = ''' Here’s a concise breakdown of the steps we have done:
+    1. Data Cleaning
+    2. Data Visualizations
+    3. ML Modelling
+    4. Chat Bot
+    '''
+    st.write(hello)
+
+# Page 2: Exploratory Data Analysis (EDA)
+def exploratory_data_analysis():
+    st.title("Data Visualizations")
+    st.markdown("""
+    <iframe width="600" height="450" src="https://lookerstudio.google.com/embed/reporting/b91808fe-0100-4e7f-94d4-957c4fea0c20/page/AtrGE" frameborder="0" style="border:0" allowfullscreen sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
+    """, unsafe_allow_html=True)
+
+# Page 3: Machine Learning Modeling
+# Streamlit application
+def machine_learning_modeling():
+    st.title("Food Hamper Forecasting")
+
+    # Subsection: SARIMA Model for Food Hampers
+    st.subheader("Food Hamper Forecasting (SARIMA Model)")
+
+    # Input for start date
+    start_date = st.date_input("Select the start date:", datetime.today())
+
+    # Input for the number of days to forecast
+    days = st.number_input("Enter the number of days to forecast:", min_value=1, step=1, value=1)
+
+    if st.button("Predict Food Hampers"):
+        # Call the prediction function with the selected start date and number of days
+        predictions_df, fig = predict_for_days(start_date.strftime("%Y-%m-%d"), int(days))
+
+        if predictions_df is not None:
+            st.pyplot(fig)
+            st.write("### Forecasted Food Hampers")
+            st.write(predictions_df)
+            total_hampers = predictions_df["Predicted Hampers"].sum()
+            st.success(f"For {days} days starting from {start_date}, "
+                       f"you will need approximately {int(total_hampers)} food hampers.")
+# page 4
 def display_sarima_graphs(train_df, test_df, df, forecast_values_boxcox, confidence_intervals_boxcox, forecast_values_original):
     st.title("SARIMA Forecast Analysis")
 
@@ -84,56 +193,19 @@ def display_sarima_graphs(train_df, test_df, df, forecast_values_boxcox, confide
     fig2 = plot_original_scale_forecast(df, test_df, forecast_values_original)
     st.pyplot(fig2)
 
-# New Page: Detailed Analysis
-def detailed_analysis():
-    st.title("Detailed SARIMA Analysis")
-    st.write("This section provides in-depth analysis of SARIMA model predictions and their performance.")
-
-    # Simulated Data for Demonstration
-    st.subheader("Analysis Metrics")
-    st.write("### R-squared Value")
-    r_squared = np.random.random()  # Replace with actual R-squared calculation
-    st.write(f"The R-squared value of the model is: {r_squared:.2f}")
-
-    st.write("### Residual Analysis")
-    residuals = np.random.random(100) - 0.5  # Replace with actual residual data
-    fig, ax = plt.subplots()
-    ax.hist(residuals, bins=20, color='blue', alpha=0.7)
-    ax.set_title("Residual Distribution")
-    ax.set_xlabel("Residuals")
-    ax.set_ylabel("Frequency")
-    st.pyplot(fig)
-
-# Example call within Streamlit
+# Main App Logic
 def main():
-    # Simulate data and forecasts for demonstration purposes
-    # In real implementation, replace with actual data and model results
+    st.sidebar.title("Food Hamper Prediction")
+    app_page = st.sidebar.radio("Select a Page", ["Dashboard", "Data visualizations", "ML Modeling","Forecast Analysis", "Detailed Analysis"])
 
-    # Assuming the DataFrame `df` and model forecasts are already computed
-    df = pd.DataFrame({
-        "date": pd.date_range(start="2023-01-01", periods=100),
-        "actual_pickup": np.random.randint(50, 200, size=100),
-        "actual_pickup_boxcox": np.random.random(size=100)
-    })
-
-    split_idx = int(len(df) * 0.8)
-    train_df = df.iloc[:split_idx]
-    test_df = df.iloc[split_idx:]
-
-    forecast_values_boxcox = np.random.random(size=len(test_df))
-    confidence_intervals_boxcox = pd.DataFrame({
-        0: forecast_values_boxcox - 0.1,  # Lower bound
-        1: forecast_values_boxcox + 0.1   # Upper bound
-    })
-    forecast_values_original = np.random.randint(50, 200, size=len(test_df))
-
-    st.sidebar.title("SARIMA Forecast")
-    app_page = st.sidebar.radio("Select a Page", ["Forecast Analysis", "Detailed Analysis"])
-
-    if app_page == "Forecast Analysis":
+    if app_page == "Dashboard":
+        dashboard()
+    elif app_page == "Data visualizations":
+        exploratory_data_analysis()
+    elif app_page == "ML Modeling":
+        machine_learning_modeling()
+    elif app_page == "Forecast Analysis":
         display_sarima_graphs(train_df, test_df, df, forecast_values_boxcox, confidence_intervals_boxcox, forecast_values_original)
-    elif app_page == "Detailed Analysis":
-        detailed_analysis()
 
 if __name__ == "__main__":
     main()
