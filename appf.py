@@ -41,9 +41,6 @@ def predict_for_days(start_date, days):
         # Forecast using SARIMA model
         predictions = sarima_model.forecast(steps=days, exog=future_exog)
 
-        # Convert predictions to integers
-        predictions = predictions.round().astype(int)
-
         # Create a DataFrame for predictions
         forecast_dates = future_exog.index
         prediction_df = pd.DataFrame({"Date": forecast_dates, "Predicted Hampers": predictions})
