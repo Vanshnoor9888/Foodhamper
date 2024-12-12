@@ -1,20 +1,17 @@
 import streamlit as st
 import pandas as pd
-import joblib
 import numpy as np
 import matplotlib.pyplot as plt
-
-# Load the dataset with a specified encoding
-data = pd.read_csv('mergedfoodandclients.csv', encoding='latin1')
-
-from datetime import datetime, timedelta
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
+from datetime import datetime
 import joblib
+from scipy.special import inv_boxcox
 
 # Load SARIMA model
 sarima_model = joblib.load('sarima_model.pkl')
+
+# Load dataset
+data = pd.read_csv('mergedfoodandclients.csv', encoding='latin1', parse_dates=['date'])
+data.set_index('date', inplace=True)
 
 # Function to generate exogenous variables
 def generate_exog(start_date, days):
@@ -30,10 +27,7 @@ def generate_exog(start_date, days):
     return pd.DataFrame(future_exog, index=pd.date_range(start=start_date, periods=days, freq="D"))
 
 # Function to predict using SARIMA and plot
-def predict_for_days(start_date, days):
-    """
-    Predict the total food hampers needed for a specified number of days and display results.
-    """
+def predict_and_plot(start_date, days, lam):
     try:
         # Generate exogenous variables
         future_exog = generate_exog(start_date, days)
@@ -41,25 +35,51 @@ def predict_for_days(start_date, days):
         # Forecast using SARIMA model
         predictions = sarima_model.forecast(steps=days, exog=future_exog)
 
-        # Create a DataFrame for predictions
+        # Inverse Box-Cox transformation
+        forecast_original = inv_boxcox(predictions, lam)
+
+        # Create DataFrame for forecast results
         forecast_dates = future_exog.index
-        prediction_df = pd.DataFrame({"Date": forecast_dates, "Predicted Hampers": predictions})
+        prediction_df = pd.DataFrame({
+            "Date": forecast_dates,
+            "Predicted Hampers (Box-Cox Transformed)": predictions,
+            "Predicted Hampers (Original Scale)": forecast_original
+        })
 
-        # Plot the predictions
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.plot(forecast_dates, predictions, label="Forecast", marker="o")
-        ax.set_xlabel("Date")
-        ax.set_ylabel("Predicted Food Hampers")
-        ax.set_title("SARIMA Model Forecast")
-        ax.legend()
-        ax.grid(True)
+        # Plot results
+        fig, ax = plt.subplots(2, 1, figsize=(12, 12))
 
-        plt.xticks(rotation=45)
+        # Plot for Box-Cox transformed data
+        ax[0].plot(data.index, data['actual_pickup_boxcox'], label="Actual (Train/Test)", color="blue")
+        ax[0].plot(forecast_dates, predictions, label="Forecast (Box-Cox Transformed)", color="orange")
+        ax[0].set_title("SARIMA Forecast (Box-Cox Transformed)")
+        ax[0].fill_between(
+            forecast_dates,
+            predictions - 1.96 * np.std(predictions),
+            predictions + 1.96 * np.std(predictions),
+            color='gray', alpha=0.3, label="Confidence Interval"
+        )
+        ax[0].legend()
+        ax[0].grid(True)
+
+        # Plot for original scale
+        ax[1].plot(data.index, data['actual_pickup'], label="Actual (Train/Test)", color="blue")
+        ax[1].plot(forecast_dates, forecast_original, label="Forecast (Original Scale)", color="green")
+        ax[1].set_title("SARIMA Forecast (Original Scale)")
+        ax[1].fill_between(
+            forecast_dates,
+            forecast_original - 1.96 * np.std(forecast_original),
+            forecast_original + 1.96 * np.std(forecast_original),
+            color='gray', alpha=0.3, label="Confidence Interval"
+        )
+        ax[1].legend()
+        ax[1].grid(True)
+
         plt.tight_layout()
-
         return prediction_df, fig
+
     except Exception as e:
-        print(f"Error during prediction: {str(e)}")
+        st.error(f"Error during prediction: {str(e)}")
         return None, None
 
 # Streamlit application
@@ -90,7 +110,6 @@ def exploratory_data_analysis():
     """, unsafe_allow_html=True)
 
 # Page 3: Machine Learning Modeling
-# Streamlit application
 def machine_learning_modeling():
     st.title("Food Hamper Forecasting")
 
@@ -101,17 +120,20 @@ def machine_learning_modeling():
     start_date = st.date_input("Select the start date:", datetime.today())
 
     # Input for the number of days to forecast
-    days = st.number_input("Enter the number of days to forecast:", min_value=1, step=1, value=1)
+    days = st.number_input("Enter the number of days to forecast:", min_value=1, step=1, value=7)
+
+    # Input for Box-Cox lambda value
+    lam = st.number_input("Enter the lambda value for Box-Cox transformation:", min_value=0.0, step=0.1, value=1.0)
 
     if st.button("Predict Food Hampers"):
-        # Call the prediction function with the selected start date and number of days
-        predictions_df, fig = predict_for_days(start_date.strftime("%Y-%m-%d"), int(days))
+        # Call the prediction and plotting function
+        predictions_df, fig = predict_and_plot(start_date.strftime("%Y-%m-%d"), int(days), lam)
 
         if predictions_df is not None:
             st.pyplot(fig)
             st.write("### Forecasted Food Hampers")
             st.write(predictions_df)
-            total_hampers = predictions_df["Predicted Hampers"].sum()
+            total_hampers = predictions_df["Predicted Hampers (Original Scale)"].sum()
             st.success(f"For {days} days starting from {start_date}, "
                        f"you will need approximately {int(total_hampers)} food hampers.")
 
