@@ -187,13 +187,19 @@ def sarima_forecast_graphs():
     st.subheader("Forecast (Original Scale)")
     fig2 = plot_original_graph(data, test_df, forecast_values_original)
     st.pyplot(fig2)
+# Page 5: Map 
+def map():
+    st.title("Map for Food Hamper Prediction.")
+    st.markdown("""
+    <iframe width="600" height="450" src="<iframe src="https://www.google.com/maps/d/u/0/embed?mid=1Uf7Agld8GzoH9-fzNNsUpmCN-0X8BEQ&ehbc=2E312F" width="640" height="480"></iframe>
+    """, unsafe_allow_html=True)
 
 # Main App Logic
 def main():
     st.sidebar.title("Food Hamper Prediction")
     app_page = st.sidebar.radio(
         "Select a Page", 
-        ["Dashboard", "Data visualizations", "Sarima Model Predictions", "SARIMA Forecast Graphs"]
+        ["Dashboard", "Data visualizations", "Sarima Model Predictions", "SARIMA Forecast Graphs", "Map for Food Hamper Prediction"]
     )
 
     if app_page == "Dashboard":
@@ -204,6 +210,8 @@ def main():
         machine_learning_modeling()
     elif app_page == "SARIMA Forecast Graphs":
         sarima_forecast_graphs()
+    elif app_page == "Map for Food Hamper Prediction":
+        map()
 
 if __name__ == "__main__":
     main()
