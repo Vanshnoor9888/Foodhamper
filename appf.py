@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Load the dataset with a specified encoding
-# data = pd.read_csv('mergedfoodandclients.csv', encoding='latin1')
+data = pd.read_csv('mergedfoodandclients.csv', encoding='latin1')
 
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
@@ -30,10 +30,9 @@ def generate_exog(start_date, days):
     return pd.DataFrame(future_exog, index=pd.date_range(start=start_date, periods=days, freq="D"))
 
 # Function to predict using SARIMA and plot
-# Function to predict using SARIMA and plot with actual data
-def predict_and_compare(start_date, days, actual_data=None):
+def predict_for_days(start_date, days):
     """
-    Predict the total food hampers needed for a specified number of days and compare with actual data.
+    Predict the total food hampers needed for a specified number of days and display results.
     """
     try:
         # Generate exogenous variables
@@ -48,16 +47,10 @@ def predict_and_compare(start_date, days, actual_data=None):
 
         # Plot the predictions
         fig, ax = plt.subplots(figsize=(10, 6))
-        ax.plot(forecast_dates, predictions, label="Predicted", marker="o", linestyle="--")
-
-        if actual_data is not None:
-            # Ensure actual data aligns with forecast dates
-            actual_data = actual_data.loc[forecast_dates]
-            ax.plot(forecast_dates, actual_data, label="Actual", marker="o", color="red")
-
+        ax.plot(forecast_dates, predictions, label="Forecast", marker="o")
         ax.set_xlabel("Date")
-        ax.set_ylabel("Food Hampers")
-        ax.set_title("SARIMA Model Forecast vs Actual")
+        ax.set_ylabel("Predicted Food Hampers")
+        ax.set_title("SARIMA Model Forecast")
         ax.legend()
         ax.grid(True)
 
@@ -98,7 +91,6 @@ def exploratory_data_analysis():
 
 # Page 3: Machine Learning Modeling
 # Streamlit application
-# Page 3: Machine Learning Modeling
 def machine_learning_modeling():
     st.title("Food Hamper Forecasting")
 
@@ -111,18 +103,9 @@ def machine_learning_modeling():
     # Input for the number of days to forecast
     days = st.number_input("Enter the number of days to forecast:", min_value=1, step=1, value=1)
 
-    # Option to upload actual data
-    actual_file = st.file_uploader("Upload actual data (CSV with 'Date' and 'Actual Hampers'):", type=["csv"])
-
-    if st.button("Predict and Compare"):
-        # Load actual data if uploaded
-        actual_data = None
-        if actual_file:
-            actual_df = pd.read_csv(actual_file, parse_dates=["Date"])
-            actual_data = actual_df.set_index("Date")["Actual Hampers"]
-
+    if st.button("Predict Food Hampers"):
         # Call the prediction function with the selected start date and number of days
-        predictions_df, fig = predict_and_compare(start_date.strftime("%Y-%m-%d"), int(days), actual_data)
+        predictions_df, fig = predict_for_days(start_date.strftime("%Y-%m-%d"), int(days))
 
         if predictions_df is not None:
             st.pyplot(fig)
