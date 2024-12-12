@@ -52,22 +52,33 @@ def predict_for_days(days):
 
 # Page 1: Dashboard
 def dashboard():
-    st.subheader("💡 Abstract:")
-    inspiration = '''
-Data Quality: It is impossible to exaggerate the significance of data quality...
+    st.subheader("💡 Project Overview:")
+    inspiration = '''Project Overview We are collaborating on a machine learning project with a food hamper
+    distribution company. The organization has shared their dataset with us and highlighted a number of challenges
+    they face, such as resource allocation and meeting rising demand. After analyzing their needs, we identified that predicting 
+    the number of food hampers to be distributed in the near future could address several of these challenges. Our project will focus on 
+    developing a model to accurately forecast hamper distribution, enabling better planning and resource management for the organization.
     '''
     st.write(inspiration)
+    st.subheader("Steps :")
+    hello = ''' Here’s a concise breakdown of steps we have done:
+    1. Data Cleaning
+    2. Data Visualizations
+    3. ML Modelling
+    4. Chat Bot
+    '''
+    st.write(hello)
 
 # Page 2: Exploratory Data Analysis (EDA)
 def exploratory_data_analysis():
-    st.title("Exploratory Data Analysis")
+    st.title("Data Visualizations")
     st.markdown("""
     <iframe width="600" height="450" src="https://lookerstudio.google.com/embed/reporting/b91808fe-0100-4e7f-94d4-957c4fea0c20/page/AtrGE" frameborder="0" style="border:0" allowfullscreen sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
     """, unsafe_allow_html=True)
 
 # Page 3: Machine Learning Modeling
 def machine_learning_modeling():
-    st.title("Kijiji Rental Price Prediction & Food Hamper Forecasting")
+    st.title("Food Hamper Forecasting")
 
     # Subsection: SARIMA Model for Food Hampers
     st.subheader("Food Hamper Forecasting (SARIMA Model)")
@@ -79,45 +90,10 @@ def machine_learning_modeling():
             st.pyplot(fig)
             total_hampers = sum(predictions)
             st.success(f"For {days} days, you will need approximately {int(total_hampers)} food hampers.")
-
-    # Subsection: Kijiji Rental Price Prediction
-    st.subheader("Kijiji Rental Price Prediction")
-    property_type = st.selectbox("Type of Property", ['Apartment', 'House', 'Condo', 'Townhouse'])
-    bedrooms = st.slider("Number of Bedrooms", 1, 5, 2)
-    bathrooms = st.slider("Number of Bathrooms", 1, 3, 1)
-    size = st.slider("Size (sqft)", 300, 5000, 1000)
-    unique_locations = data['CSDNAME'].unique()
-    location = st.selectbox("Location", unique_locations)
-
-    if st.button("Predict Rental Price"):
-        # Load the trained model including preprocessing
-        model = joblib.load('random_forest_regressor_model.pkl')
-
-        # Prepare input data as a DataFrame
-        input_df = pd.DataFrame({
-            'Type': [property_type],
-            'Bedrooms': [bedrooms],
-            'Bathrooms': [bathrooms],
-            'Size': [size],
-            'CSDNAME': [location]
-        })
-
-        # Make prediction
-        prediction = model.predict(input_df)
-
-        # Map the predicted classes to labels
-        price_bins = [0, 1700, 2300, float('inf')]
-        price_labels = ['low', 'medium', 'high']
-        price_category = pd.cut(prediction, bins=price_bins, labels=price_labels)
-
-        # Display the predictions
-        st.success(f"Predicted Rental Price: ${prediction[0]:,.2f}")
-        st.success(f"Predicted Price Category: {price_category[0]}")
-
 # Main App Logic
 def main():
-    st.sidebar.title("Kijiji Community App")
-    app_page = st.sidebar.radio("Select a Page", ["Dashboard", "EDA", "ML Modeling"])
+    st.sidebar.title("Food Hamper Prediction")
+    app_page = st.sidebar.radio("Select a Page", ["Dashboard", "Data visualizations", "ML Modeling"])
 
     if app_page == "Dashboard":
         dashboard()
