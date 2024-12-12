@@ -92,7 +92,7 @@ def exploratory_data_analysis():
 
 # Page 3: Machine Learning Modeling
 # Streamlit application
-# Streamlit applicationdef machine_learning_modeling():
+def machine_learning_modeling():
     st.title("Food Hamper Forecasting")
     # Subsection: SARIMA Model for Food Hampers
     st.subheader("Food Hamper Forecasting (SARIMA Model)")
