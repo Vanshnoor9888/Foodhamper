@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import joblib
-
 # Load SARIMA model
 sarima_model = joblib.load('sarima_model.pkl')
 
@@ -54,8 +53,6 @@ def predict_for_days(start_date, days):
         ax.legend()
         ax.grid(True)
 
-        # Format x-axis for dates
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
         plt.xticks(rotation=45)
         plt.tight_layout()
 
@@ -63,7 +60,6 @@ def predict_for_days(start_date, days):
     except Exception as e:
         print(f"Error during prediction: {str(e)}")
         return None, None
-
 # Page 1: Dashboard
 def dashboard():
     st.subheader("💡 Project Overview:")
@@ -75,7 +71,7 @@ def dashboard():
     '''
     st.write(inspiration)
     st.subheader("Steps :")
-    hello = ''' Here’s a concise breakdown of steps we have done:
+    hello = ''' Here’s a concise breakdown of the steps we have done:
     1. Data Cleaning
     2. Data Visualizations
     3. ML Modelling
@@ -91,7 +87,6 @@ def exploratory_data_analysis():
     """, unsafe_allow_html=True)
 
 # Page 3: Machine Learning Modeling
-# Streamlit application
 # Streamlit application
 def machine_learning_modeling():
     st.title("Food Hamper Forecasting")
@@ -110,8 +105,7 @@ def machine_learning_modeling():
         predictions_df, fig = predict_for_days(start_date.strftime("%Y-%m-%d"), int(days))
 
         if predictions_df is not None:
-            st.pyplot(fig)  # Display the plot
-            plt.close(fig)  # Ensure the figure is closed after rendering
+            st.pyplot(fig)
             st.write("### Forecasted Food Hampers")
             st.write(predictions_df)
             total_hampers = predictions_df["Predicted Hampers"].sum()
