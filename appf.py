@@ -42,7 +42,10 @@ def predict_for_days(start_date, days):
 
         # Create a DataFrame for predictions
         forecast_dates = future_exog.index
-        prediction_df = pd.DataFrame({"Date": forecast_dates, "Predicted Hampers": predictions})
+        prediction_df = pd.DataFrame({
+            "Date": forecast_dates, 
+            "Predicted Hampers": predictions.astype(int)  # Convert predictions to integers
+        })
 
         # Plot the predictions
         fig, ax = plt.subplots(figsize=(10, 6))
@@ -53,6 +56,8 @@ def predict_for_days(start_date, days):
         ax.legend()
         ax.grid(True)
 
+        # Format x-axis for dates
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
         plt.xticks(rotation=45)
         plt.tight_layout()
 
@@ -60,6 +65,8 @@ def predict_for_days(start_date, days):
     except Exception as e:
         print(f"Error during prediction: {str(e)}")
         return None, None
+
+# Streamlit application
 # Page 1: Dashboard
 def dashboard():
     st.subheader("💡 Project Overview:")
@@ -88,9 +95,9 @@ def exploratory_data_analysis():
 
 # Page 3: Machine Learning Modeling
 # Streamlit application
+# Streamlit application
 def machine_learning_modeling():
     st.title("Food Hamper Forecasting")
-
     # Subsection: SARIMA Model for Food Hampers
     st.subheader("Food Hamper Forecasting (SARIMA Model)")
 
@@ -107,12 +114,10 @@ def machine_learning_modeling():
         if predictions_df is not None:
             st.pyplot(fig)
             st.write("### Forecasted Food Hampers")
-            st.write(predictions_df)
+            st.write(predictions_df.style.format({"Predicted Hampers": "{:.0f}"}))  # Optional: Enforce integer display in the table
             total_hampers = predictions_df["Predicted Hampers"].sum()
             st.success(f"For {days} days starting from {start_date}, "
                        f"you will need approximately {int(total_hampers)} food hampers.")
-
-
 # Main App Logic
 def main():
     st.sidebar.title("Food Hamper Prediction")
