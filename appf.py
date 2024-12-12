@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import joblib
+
 # Load SARIMA model
 sarima_model = joblib.load('sarima_model.pkl')
 
@@ -94,6 +95,7 @@ def exploratory_data_analysis():
 # Streamlit application
 def machine_learning_modeling():
     st.title("Food Hamper Forecasting")
+
     # Subsection: SARIMA Model for Food Hampers
     st.subheader("Food Hamper Forecasting (SARIMA Model)")
 
@@ -114,6 +116,10 @@ def machine_learning_modeling():
             total_hampers = predictions_df["Predicted Hampers"].sum()
             st.success(f"For {days} days starting from {start_date}, "
                        f"you will need approximately {int(total_hampers)} food hampers.")
+
+# Run the Streamlit app
+# machine_learning_modeling()
+
 # Main App Logic
 def main():
     st.sidebar.title("Food Hamper Prediction")
