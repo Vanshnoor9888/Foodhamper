@@ -32,7 +32,7 @@ def generate_exog(start_date, days):
 # Function to predict using SARIMA and plot
 def predict_for_days(start_date, days):
     """
-    Predict the total food hampers needed for a specified number of days and plot.
+    Predict the total food hampers needed for a specified number of days and display results.
     """
     try:
         # Generate exogenous variables
@@ -41,12 +41,19 @@ def predict_for_days(start_date, days):
         # Forecast using SARIMA model
         predictions = sarima_model.forecast(steps=days, exog=future_exog)
 
-        # Plot the predictions
+        # Create a DataFrame for predictions
         forecast_dates = future_exog.index
+        prediction_df = pd.DataFrame({"Date": forecast_dates, "Predicted Hampers": predictions})
+
+        # Print the predictions for each date
+        print("Predicted Food Hampers:")
+        print(prediction_df)
+
+        # Plot the predictions
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.plot(forecast_dates, predictions, label="Forecast", marker="o")
         ax.set_xlabel("Date")
-        ax.set_ylabel("Predicted Value")
+        ax.set_ylabel("Predicted Food Hampers")
         ax.set_title("SARIMA Model Forecast")
         ax.legend()
         ax.grid(True)
@@ -55,10 +62,16 @@ def predict_for_days(start_date, days):
         plt.tight_layout()
         plt.show()
 
-        return predictions, fig
+        return prediction_df, fig
     except Exception as e:
         print(f"Error during prediction: {str(e)}")
         return None, None
+
+# Example usage
+# Specify the start date and number of days for forecasting
+start_date = "2024-12-12"
+days = 10
+predictions, fig = predict_for_days(start_date, days)
 
 # Page 1: Dashboard
 def dashboard():
