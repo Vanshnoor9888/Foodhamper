@@ -190,8 +190,7 @@ def sarima_forecast_graphs():
 # Page 5: Map 
 def map():
     st.title("Map for Food Hamper Prediction.")
-    st.markdown("""
-    <iframe width="600" height="450" src="<iframe src="https://www.google.com/maps/d/u/0/embed?mid=1Uf7Agld8GzoH9-fzNNsUpmCN-0X8BEQ&ehbc=2E312F" width="640" height="480"></iframe>
+    st.markdown("""<iframe src="https://www.google.com/maps/d/u/0/embed?mid=1Uf7Agld8GzoH9-fzNNsUpmCN-0X8BEQ&ehbc=2E312F" width="640" height="480"></iframe>
     """, unsafe_allow_html=True)
 
 # Main App Logic
