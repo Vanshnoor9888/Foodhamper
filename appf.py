@@ -22,6 +22,7 @@ def generate_exog(start_date, days):
     Generate exogenous values for the specified number of days.
     Replace this with your logic to fetch or estimate exog variables.
     """
+    np.random.seed(42)
     future_exog = {
         "scheduled_pickup": [100 + i * 2 + np.random.randint(-10, 10) for i in range(days)],
         "scheduled_pickup_lag_7": [90 + i + np.random.randint(-5, 5) for i in range(days)],
