@@ -6,6 +6,12 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
 import statsmodels.api as sm
 from scipy.special import inv_boxcox
+import streamlit as st
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.metrics import r2_score
+import statsmodels.api as sm
 # Load the dataset with a specified encoding
 data = pd.read_csv('mergedfoodandclients.csv', encoding='latin1')
 
@@ -17,69 +23,32 @@ import joblib
 
 # Load SARIMA model
 sarima_model = joblib.load('sarima_model.pkl')
-def plot_boxcox_forecast(train_df, test_df, forecast_values_boxcox, confidence_intervals_boxcox):
+# Function to plot Box-Cox transformed graph
+def plot_boxcox_graph(train_df, test_df, forecast_values_boxcox, confidence_intervals_boxcox):
     fig, ax = plt.subplots(figsize=(12, 6))
-
-    ax.plot(
-        train_df['date'],
-        train_df['actual_pickup_boxcox'],
-        label='Actual Pickups (Train) - Box-Cox Transformed',
-        color='blue'
-    )
-
-    ax.plot(
-        test_df['date'],
-        test_df['actual_pickup_boxcox'],
-        label='Actual Pickups (Test) - Box-Cox Transformed',
-        color='orange'
-    )
-
-    ax.plot(
-        test_df['date'],
-        forecast_values_boxcox,
-        label='Forecasted Pickups (Box-Cox Transformed)',
-        color='green'
-    )
-
+    ax.plot(train_df['date'], train_df['actual_pickup_boxcox'], label='Actual Pickups (Train) - Box-Cox Transformed')
+    ax.plot(test_df['date'], test_df['actual_pickup_boxcox'], label='Actual Pickups (Test) - Box-Cox Transformed')
+    ax.plot(test_df['date'], forecast_values_boxcox, label='Forecasted Pickups (Box-Cox Transformed)')
     ax.fill_between(
         test_df['date'],
         confidence_intervals_boxcox.iloc[:, 0],
         confidence_intervals_boxcox.iloc[:, 1],
-        color='gray',
-        alpha=0.3,
-        label='Confidence Interval'
+        color='gray', alpha=0.3, label='Confidence Interval'
     )
-
-    ax.set_title('SARIMA Forecast for Box-Cox Transformed Pickups (Train vs Test)')
+    ax.set_title('SARIMA Forecast (Box-Cox Transformed)')
     ax.legend()
-    ax.grid(True)
-
+    plt.xticks(rotation=45)
     return fig
 
-# Function to plot SARIMA Original Scale Graph
-def plot_original_scale_forecast(df, test_df, forecast_values_original):
+# Function to plot graph with reversed Box-Cox transformation
+def plot_original_graph(df, test_df, forecast_values_original):
     fig, ax = plt.subplots(figsize=(12, 6))
-
-    ax.plot(
-        df['date'],
-        df['actual_pickup'],
-        label='Actual Pickups',
-        color='blue'
-    )
-
-    ax.plot(
-        test_df['date'],
-        forecast_values_original,
-        label='Forecasted Pickups (Reversed)',
-        color='green'
-    )
-
-    ax.set_title('SARIMA Forecast for Pickups (Original Scale, Reversed Box-Cox)')
+    ax.plot(df['date'], df['actual_pickup'], label='Actual Pickups')
+    ax.plot(test_df['date'], forecast_values_original, label='Forecasted Pickups (Original Scale)')
+    ax.set_title('SARIMA Forecast (Original Scale)')
     ax.legend()
-    ax.grid(True)
-
+    plt.xticks(rotation=45)
     return fig
-
 
 # Function to generate exogenous variables
 def generate_exog(start_date, days):
@@ -179,24 +148,29 @@ def machine_learning_modeling():
             total_hampers = predictions_df["Predicted Hampers"].sum()
             st.success(f"For {days} days starting from {start_date}, "
                        f"you will need approximately {int(total_hampers)} food hampers.")
-# page 4
-def display_sarima_graphs(train_df, test_df, df, forecast_values_boxcox, confidence_intervals_boxcox, forecast_values_original):
-    st.title("SARIMA Forecast Analysis")
+# Page 4: Display SARIMA Forecast Graphs
+def sarima_forecast_graphs():
+    st.title("SARIMA Forecast Graphs")
 
-    # Add first graph: Box-Cox Transformed
-    st.subheader("Box-Cox Transformed Forecast")
-    fig1 = plot_boxcox_forecast(train_df, test_df, forecast_values_boxcox, confidence_intervals_boxcox)
-    st.pyplot(fig1)
-
-    # Add second graph: Reversed Transformation to Original Scale
-    st.subheader("Forecast on Original Scale")
-    fig2 = plot_original_scale_forecast(df, test_df, forecast_values_original)
-    st.pyplot(fig2)
+    # Placeholder data for demonstration
+    # Replace this with actual data from your analysis
+    train_df = data.iloc[:int(len(data) * 0.8)]  # First 80% of the data
+    test_df = data.iloc[int(len(data) * 0.8):]  # Last 20% of the data
+    
+    forecast_values_boxcox = np.random.rand(len(test_df))  # Simulated forecast values (replace with actual)
+    confidence_intervals_boxcox = pd.DataFrame({
+        0: forecast_values_boxcox - 0.1,  # Lower bound
+        1: forecast_values_boxcox + 0.1   # Upper bound
+    })
+    forecast_values_original = forecast_values_boxcox * 100  # Simulated reverse Box-Cox transformation
 
 # Main App Logic
 def main():
     st.sidebar.title("Food Hamper Prediction")
-    app_page = st.sidebar.radio("Select a Page", ["Dashboard", "Data visualizations", "ML Modeling","Forecast Analysis", "Detailed Analysis"])
+    app_page = st.sidebar.radio(
+        "Select a Page", 
+        ["Dashboard", "Data visualizations", "ML Modeling", "SARIMA Forecast Graphs"]
+    )
 
     if app_page == "Dashboard":
         dashboard()
@@ -204,8 +178,7 @@ def main():
         exploratory_data_analysis()
     elif app_page == "ML Modeling":
         machine_learning_modeling()
-    elif app_page == "Forecast Analysis":
-        display_sarima_graphs(train_df, test_df, df, forecast_values_boxcox, confidence_intervals_boxcox, forecast_values_original)
-
+    elif app_page == "SARIMA Forecast Graphs":
+        sarima_forecast_graphs()
 if __name__ == "__main__":
     main()
