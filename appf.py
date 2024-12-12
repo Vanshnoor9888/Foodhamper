@@ -101,6 +101,9 @@ def predict_for_days(start_date, days):
 # Streamlit application
 # Page 1: Dashboard
 def dashboard():
+        # Add an image
+    st.image(""C:\Users\naran\OneDrive\Desktop\downloads.png".jpg", caption="Machine Learning for Hamper Distribution", use_column_width=True)
+
     st.subheader("💡 Project Overview:")
     inspiration = '''Project Overview We are collaborating on a machine learning project with a food hamper
     distribution company. The organization has shared their dataset with us and highlighted a number of challenges
