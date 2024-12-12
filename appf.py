@@ -190,14 +190,14 @@ def main():
     st.sidebar.title("Food Hamper Prediction")
     app_page = st.sidebar.radio(
         "Select a Page", 
-        ["Dashboard", "Data visualizations", "ML Modeling", "SARIMA Forecast Graphs"]
+        ["Dashboard", "Data visualizations", "Sarima Model Predictions", "SARIMA Forecast Graphs"]
     )
 
     if app_page == "Dashboard":
         dashboard()
     elif app_page == "Data visualizations":
         exploratory_data_analysis()
-    elif app_page == "ML Modeling":
+    elif app_page == "Sarima Model Predictions":
         machine_learning_modeling()
     elif app_page == "SARIMA Forecast Graphs":
         sarima_forecast_graphs()
