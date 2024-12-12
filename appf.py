@@ -17,19 +17,34 @@ import joblib
 sarima_model = joblib.load('sarima_model.pkl')
 
 # Function to generate exogenous variables
-def generate_exog(start_date, days):
+def generate_exog(start_date, days, historical_data):
     """
-    Generate exogenous values for the specified number of days.
-    Replace this with your logic to fetch or estimate exog variables.
+    Generate future exogenous variables using actual past data.
+    
+    Args:
+        start_date (str): Forecast start date (YYYY-MM-DD).
+        days (int): Number of days to forecast.
+        historical_data (pd.DataFrame): DataFrame containing historical data.
+            Columns: 'scheduled_pickup', 'scheduled_pickup_lag_7', 'scheduled_pickup_lag_14', etc.
+    
+    Returns:
+        pd.DataFrame: DataFrame with future exogenous variables.
     """
-    np.random.seed(42)
+    future_dates = pd.date_range(start=start_date, periods=days, freq="D")
+    
+    # Use the last available values for lags
+    last_scheduled_pickup = historical_data['scheduled_pickup'].iloc[-1]
+    last_lag_7 = historical_data['scheduled_pickup_lag_7'].iloc[-1]
+    last_lag_14 = historical_data['scheduled_pickup_lag_14'].iloc[-1]
+    
+    # Generate future exog values (e.g., extend trends or repeat values)
     future_exog = {
-        "scheduled_pickup": [100 + i * 2 + np.random.randint(-10, 10) for i in range(days)],
-        "scheduled_pickup_lag_7": [90 + i + np.random.randint(-5, 5) for i in range(days)],
-        "scheduled_pickup_lag_14": [80 + i + np.random.randint(-3, 3) for i in range(days)],
+        "scheduled_pickup": [last_scheduled_pickup + i * 2 for i in range(days)],  # Extend trend
+        "scheduled_pickup_lag_7": [last_lag_7 for _ in range(days)],  # Repeat lag values
+        "scheduled_pickup_lag_14": [last_lag_14 for _ in range(days)],
     }
-    return pd.DataFrame(future_exog, index=pd.date_range(start=start_date, periods=days, freq="D"))
-
+    
+    return pd.DataFrame(future_exog, index=future_dates)
 # Function to predict using SARIMA and plot
 def predict_for_days(start_date, days):
     """
