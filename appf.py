@@ -215,28 +215,28 @@ def map():
 # Streamlit app
 def chatbot():
     st.title("Food Hamper Distribution Chatbot")
-    st.write("Upload the report here.")
+    st.write("Reading files from predefined paths...")
 
-    # File upload
-    uploaded_files = st.file_uploader("Upload your project files (CSV/Excel/PDF)", type=["csv", "xlsx", "pdf"], accept_multiple_files=True)
+    # List of predefined file paths
+    file_paths = [".pdf"
+    ]
 
     # Prepare data context
     data_context = ""
-    if uploaded_files:
-        for file in uploaded_files:
-            try:
-                if file.name.endswith('.csv'):
-                    df = pd.read_csv(file)
-                    data_context += f"\nData from {file.name}:\n{df.head(5).to_string()}\n"
-                elif file.name.endswith('.xlsx'):
-                    df = pd.read_excel(file)
-                    data_context += f"\nData from {file.name}:\n{df.head(5).to_string()}\n"
-                elif file.name.endswith('.pdf'):
-                    text = extract_text_from_pdf(file)
-                    data_context += f"\nExtracted text from {file.name}:\n{text[:1000]}...\n"  # Limit to first 1000 characters
-                st.success(f"Successfully processed {file.name}")
-            except Exception as e:
-                st.error(f"Error processing {file.name}: {e}")
+    for file_path in file_paths:
+        try:
+            if file_path.endswith('.csv'):
+                df = pd.read_csv(file_path)
+                data_context += f"\nData from {file_path}:\n{df.head(5).to_string()}\n"
+            elif file_path.endswith('.xlsx'):
+                df = pd.read_excel(file_path)
+                data_context += f"\nData from {file_path}:\n{df.head(5).to_string()}\n"
+            elif file_path.endswith('.pdf'):
+                text = extract_text_from_pdf(file_path)
+                data_context += f"\nExtracted text from {file_path}:\n{text[:1000]}...\n"  # Limit to first 1000 characters
+            st.success(f"Successfully processed {file_path}")
+        except Exception as e:
+            st.error(f"Error processing {file_path}: {e}")
 
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
@@ -248,11 +248,10 @@ def chatbot():
             response = generate_response(user_input, data_context)
             st.session_state.chat_history.append({"role": "assistant", "content": response})
         elif not data_context:
-            st.error("Please upload relevant files to ask project-specific questions.")
+            st.error("No valid data context available. Please check the file paths.")
 
     for message in st.session_state.chat_history:
         st.write(f"{message['role'].capitalize()}: {message['content']}")
-
 # Main App Logic
 def main():
     st.sidebar.title("Food Hamper Prediction")
