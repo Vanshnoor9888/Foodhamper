@@ -9,6 +9,7 @@ from scipy.special import inv_boxcox
 from datetime import datetime, timedelta
 import google.generativeai as genai
 import os
+from PyPDF2 import PdfReader
 # Set up the API key
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY', st.secrets.get("GOOGLE_API_KEY"))
 genai.configure(api_key=GOOGLE_API_KEY)
