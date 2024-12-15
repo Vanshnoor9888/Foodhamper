@@ -206,7 +206,7 @@ def sarima_forecast_graphs():
     st.subheader("Forecast (Original Scale)")
     fig2 = plot_original_graph(data, test_df, forecast_values_original)
     st.pyplot(fig2)
-# Page 5: Map 
+# Page 5: Map
 def map():
     st.title("Map for Food Hamper Prediction.")
     st.markdown("""<iframe src="https://www.google.com/maps/d/u/0/embed?mid=1Uf7Agld8GzoH9-fzNNsUpmCN-0X8BEQ&ehbc=2E312F" width="640" height="480"></iframe>
@@ -218,8 +218,7 @@ def chatbot():
     st.write("Reading files from predefined paths...")
 
     # List of predefined file paths
-    file_paths = ["mergedfoodandclientfinal.xlsx",
-                  "Final progress report1 .pdf"
+    file_paths = ["NQ Report Template_DSN.pdf"
     ]
 
     # Prepare data context
@@ -257,7 +256,7 @@ def chatbot():
 def main():
     st.sidebar.title("Food Hamper Prediction")
     app_page = st.sidebar.radio(
-        "Select a Page", 
+        "Select a Page",
         ["Dashboard", "Data visualizations", "Sarima Model Predictions", "SARIMA Forecast Graphs", "Map for Food Hamper Prediction", "Chatbot"]
     )
 
