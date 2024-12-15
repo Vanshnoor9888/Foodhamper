@@ -175,7 +175,7 @@ def machine_learning_modeling():
 
 # Page 4: Display SARIMA Forecast Graphs
 def sarima_forecast_graphs():
-     st.title("SARIMA Forecast Graphs")
+    st.title("SARIMA Forecast Graphs")
 
     # Convert 'date' column to datetime
     data['date'] = pd.to_datetime(data['date'])
@@ -193,20 +193,19 @@ def sarima_forecast_graphs():
         0: forecast_values_boxcox - 0.1,  # Placeholder lower bound (adjust with actual)
         1: forecast_values_boxcox + 0.1   # Placeholder upper bound (adjust with actual)
     })
-        # Reverse Box-Cox transformation (placeholder for actual lambda)
+
+    # Reverse Box-Cox transformation (placeholder for actual lambda)
     forecast_values_original = np.exp(forecast_values_boxcox)  # Adjust transformation as needed
 
-
     # Plot the Box-Cox transformed graph
-        # Plot the reversed transformation graph
-    st.subheader("Forecast (Original Scale)")
-    fig2 = plot_original_graph(data, test_df, forecast_values_original)
-    st.pyplot(fig2)
     st.subheader("Forecast (Box-Cox Transformed Data)")
     fig1 = plot_boxcox_graph(train_df, test_df, forecast_values_boxcox, confidence_intervals_boxcox)
     st.pyplot(fig1)
 
-
+    # Plot the reversed transformation graph
+    st.subheader("Forecast (Original Scale)")
+    fig2 = plot_original_graph(data, test_df, forecast_values_original)
+    st.pyplot(fig2)
 # Page 5: Map 
 def map():
     st.title("Map for Food Hamper Prediction.")
