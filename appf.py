@@ -219,7 +219,7 @@ def chatbot():
 
     # List of predefined file paths
     file_paths = ["mergedfoodandclientfinal.xlsx",
-                  "NQ Report Template_DSN.pdf"
+                  "Final progress report1 .pdf"
     ]
 
     # Prepare data context
