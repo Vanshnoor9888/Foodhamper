@@ -1,337 +1,117 @@
-import streamlit as st
 import pandas as pd
-import joblib
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import r2_score
-import statsmodels.api as sm
 from scipy.special import inv_boxcox
-from datetime import datetime, timedelta
-import google.generativeai as genai
-import os
-# from PyPDF2 import PdfReader
-# Set up the API key
-# GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY', st.secrets.get("GOOGLE_API_KEY"))
-# genai.configure(api_key=GOOGLE_API_KEY)
-# Function to extract text from PDF
-def extract_text_from_pdf(pdf_file):
-    try:
-        reader = PdfReader(pdf_file)
-        text = ""
-        for page in reader.pages:
-            text += page.extract_text()
-        return text.strip()
-    except Exception as e:
-        st.error(f"Error reading PDF: {e}")
-        return ""
+from sklearn.metrics import mean_squared_error
+import statsmodels.api as sm
 
-# Function to generate response from the model
-def generate_response(prompt, context):
-    try:
-        model = genai.GenerativeModel('gemini-pro')
-        # Include context from uploaded data in the prompt
-        response = model.generate_content(f"{prompt}\n\nContext:\n{context}")
-        return response.text  # Use 'text' attribute
-    except Exception as e:
-        st.error(f"Error generating response: {e}")
-        return "Sorry, I couldn't process your request."
+# Function to train the SARIMA model and forecast future values
+def train_and_forecast_sarima(df, future_steps, lam):
+    """
+    Train a SARIMA model on historical data and forecast future values.
 
+    Parameters:
+        df (DataFrame): Input DataFrame containing historical data.
+        future_steps (int): Number of future time steps to predict.
+        lam (float): Box-Cox transformation parameter.
 
-# Load SARIMA model
-sarima_model = joblib.load('sarima_model.pkl')
-# Load the dataset with a specified encoding
-data = pd.read_csv('dataframe.csv', encoding='latin1')
+    Returns:
+        forecast_values_original (ndarray): Forecasted values on the original scale.
+        confidence_intervals_original (DataFrame): Confidence intervals for the forecasts on the original scale.
+        forecast_df (DataFrame): DataFrame containing forecasted values and confidence intervals.
+        model_fit (SARIMAXResults): Trained SARIMA model fit object.
+    """
+    # Ensure the data is sorted by date
+    df['date'] = pd.to_datetime(df['date'])
+    df.sort_values('date', inplace=True)
+    df.set_index('date', inplace=True)
 
-# Load SARIMA model
-sarima_model = joblib.load('sarima_model.pkl')
+    # Define training data
+    train_y = df['actual_pickup_boxcox']
+    exog_train = df[['scheduled_pickup', 'scheduled_pickup_lag_7', 'scheduled_pickup_lag_14']]
 
-# Function to plot Box-Cox transformed graph
-def plot_boxcox_graph(train_df, test_df, forecast_values_boxcox, confidence_intervals_boxcox):
-    fig, ax = plt.subplots(figsize=(12, 6))
-    ax.plot(train_df['date'], train_df['actual_pickup_boxcox'], label='Actual Pickups (Train) - Box-Cox Transformed')
-    ax.plot(test_df['date'], test_df['actual_pickup_boxcox'], label='Actual Pickups (Test) - Box-Cox Transformed')
-    ax.plot(test_df['date'], forecast_values_boxcox, label='Forecasted Pickups (Box-Cox Transformed)')
-    ax.fill_between(
-        test_df['date'],
-        confidence_intervals_boxcox.iloc[:, 0],
-        confidence_intervals_boxcox.iloc[:, 1],
-        color='gray', alpha=0.3, label='Confidence Interval'
+    # Train SARIMA model
+    sarima_model = sm.tsa.SARIMAX(
+        train_y,
+        exog=exog_train,
+        order=(4, 1, 4),  # Tune these parameters as needed
+        seasonal_order=(1, 1, 1, 7),  # Weekly seasonality
+        enforce_stationarity=False,
+        enforce_invertibility=False
     )
-    ax.set_title('SARIMA Forecast (Box-Cox Transformed)')
-    ax.legend()
-    plt.xticks(rotation=45)
-    return fig
+    model_fit = sarima_model.fit(disp=False)
 
-# Function to plot graph with reversed Box-Cox transformation
-def plot_original_graph(df, test_df, forecast_values_original):
-    fig, ax = plt.subplots(figsize=(12, 6))
-    ax.plot(df['date'], df['actual_pickup'], label='Actual Pickups')
-    ax.plot(test_df['date'], forecast_values_original, label='Forecasted Pickups (Original Scale)')
-    ax.set_title('SARIMA Forecast (Original Scale)')
-    ax.legend()
-    plt.xticks(rotation=45)
-    return fig
-# Function to generate exogenous variables
-def fetch_historical_exog(start_date, end_date):
-    """
-    Fetch exogenous variables for a given date range from the historical data.
-    """
-    historical_exog = data.loc[start_date:end_date, ["scheduled_pickup", "scheduled_pickup_lag_7", "scheduled_pickup_lag_14"]]
-    return historical_exog
+    # Print model summary
+    print(model_fit.summary())
 
-# Function to predict on past data using SARIMA
-def predict_on_past(start_date, end_date):
-    """
-    Predict the total food hampers needed for a specified past date range and display results.
-    """
-    try:
-        # Fetch historical exogenous variables
-        historical_exog = fetch_historical_exog(start_date, end_date)
-        
-        # Define the number of days based on the date range
-        days = (pd.to_datetime(end_date) - pd.to_datetime(start_date)).days + 1
+    # Create future exogenous variables for prediction
+    future_dates = pd.date_range(start=df.index[-1] + pd.Timedelta(days=1), periods=future_steps, freq='D')
+    future_exog = {
+        "scheduled_pickup": [100 + i * 2 for i in range(future_steps)],
+        "scheduled_pickup_lag_7": [90 + i for i in range(future_steps)],
+        "scheduled_pickup_lag_14": [80 + i for i in range(future_steps)],
+    }
+    future_exog_df = pd.DataFrame(future_exog, index=future_dates)
 
-        # Forecast using SARIMA model
-        predictions = sarima_model.forecast(steps=days, exog=historical_exog)
+    # Forecast future values
+    forecast_results = model_fit.get_forecast(steps=future_steps, exog=future_exog_df)
+    forecast_values_boxcox = forecast_results.predicted_mean
+    confidence_intervals_boxcox = forecast_results.conf_int()
 
-        # Create a DataFrame for predictions
-        forecast_dates = historical_exog.index
-        prediction_df = pd.DataFrame({"Date": forecast_dates, "Predicted Hampers": predictions})
+    # Inverse Box-Cox transformation to return values to the original scale
+    forecast_values_original = inv_boxcox(forecast_values_boxcox, lam)
+    confidence_intervals_original = inv_boxcox(confidence_intervals_boxcox, lam)
 
-        # Calculate metrics (e.g., MSE)
-        actual_values = data.loc[start_date:end_date, "actual_pickup_boxcox"]
-        mse = mean_squared_error(actual_values, predictions)
-        print(f"Mean Squared Error on Past Data: {mse}")
-
-        # Plot the predictions against actual values
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.plot(forecast_dates, predictions, label="Predicted", marker="o")
-        ax.plot(forecast_dates, actual_values, label="Actual", marker="x")
-        ax.set_xlabel("Date")
-        ax.set_ylabel("Food Hampers")
-        ax.set_title("SARIMA Model Forecast vs Actuals (Past Data)")
-        ax.legend()
-        ax.grid(True)
-
-        plt.xticks(rotation=45)
-        plt.tight_layout()
-
-        return prediction_df, fig
-    except Exception as e:
-        print(f"Error during prediction: {str(e)}")
-        return None, None
-
-# Example usage
-start_date = "2023-01-01"
-end_date = "2023-01-15"
-prediction_df, fig = predict_on_past(start_date, end_date)
-
-if prediction_df is not None:
-    print(prediction_df)
-    plt.show()
-# Streamlit application
-# Page 1: Dashboard
-def dashboard():
-        # Add an image
-    # st.image("downloads.png", use_column_width=True)
-
-    st.subheader("💡 Project Overview:")
-    inspiration = '''Project Overview We are collaborating on a machine learning project with a food hamper
-    distribution company. The organization has shared their dataset with us and highlighted a number of challenges
-    they face, such as resource allocation and meeting rising demand. After analyzing their needs, we identified that predicting
-    the number of food hampers to be distributed in the near future could address several of these challenges. Our project will focus on
-    developing a model to accurately forecast hamper distribution, enabling better planning and resource management for the organization.
-    '''
-    st.write(inspiration)
-    st.subheader("Steps :")
-    hello = ''' Here’s a concise breakdown of the steps we have done:
-    1. Data Cleaning
-    2. Data Visualizations
-    3. ML Modelling
-    4. Chat Bot
-    '''
-    st.write(hello)
-
-# Page 2: Exploratory Data Analysis (EDA)
-def exploratory_data_analysis():
-    st.title("Data Visualizations")
-    st.markdown("""
-    <iframe width="600" height="450" src="https://lookerstudio.google.com/embed/reporting/b91808fe-0100-4e7f-94d4-957c4fea0c20/page/AtrGE" frameborder="0" style="border:0" allowfullscreen sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
-    """, unsafe_allow_html=True)
-
-# Page 3: Machine Learning Modeling
-# Streamlit application
-def machine_learning_modeling():
-    st.title("Food Hamper Forecasting")
-
-    # Subsection: SARIMA Model for Food Hampers
-    st.subheader("Food Hamper Prediction (SARIMA Model)")
-
-    # Input for selecting prediction mode (past data or future forecast)
-    prediction_mode = st.radio(
-        "Select prediction mode:",
-        ("Predict for past data", "Forecast future data")
-    )
-
-    # Input for start and end dates (for past predictions)
-    if prediction_mode == "Predict for past data":
-        start_date = st.date_input(
-            "Select the start date for past predictions:",
-            datetime.today().date()
-        )
-        end_date = st.date_input(
-            "Select the end date for past predictions:",
-            datetime.today().date()
-        )
-
-        if st.button("Predict Past Data"):
-            if start_date > end_date:
-                st.error("Start date cannot be after end date. Please select valid dates.")
-            else:
-                # Call the past prediction function
-                predictions_df, fig = predict_on_past(
-                    start_date.strftime("%Y-%m-%d"),
-                    end_date.strftime("%Y-%m-%d")
-                )
-                if predictions_df is not None:
-                    st.pyplot(fig)
-                    st.write("### Predicted vs Actual Food Hampers")
-                    st.write(predictions_df)
-                    total_hampers = predictions_df["Predicted Hampers"].sum()
-                    st.success(
-                        f"From {start_date} to {end_date}, "
-                        f"the model predicted approximately {int(total_hampers)} food hampers."
-                    )
-                else:
-                    st.error("Prediction failed. Please check the model or input data.")
-
-    # Input for future predictions
-    elif prediction_mode == "Forecast future data":
-        start_date = st.date_input(
-            "Select the start date for the forecast:",
-            datetime.today().date()
-        )
-        days = st.number_input(
-            "Enter the number of days to forecast:",
-            min_value=1, step=1, value=1
-        )
-
-        if st.button("Forecast Future Data"):
-            # Call the future forecast function
-            predictions_df, fig = predict_for_days(
-                start_date.strftime("%Y-%m-%d"),
-                int(days)
-            )
-            if predictions_df is not None:
-                st.pyplot(fig)
-                st.write("### Forecasted Food Hampers")
-                st.write(predictions_df)
-                total_hampers = predictions_df["Predicted Hampers"].sum()
-                st.success(
-                    f"For {days} days starting from {start_date}, "
-                    f"the model forecasts approximately {int(total_hampers)} food hampers."
-                )
-            else:
-                st.error("Forecast failed. Please check the model or input data.")
-# Page 4: Display SARIMA Forecast Graphs
-def sarima_forecast_graphs():
-    st.title("SARIMA Forecast Graphs")
-
-    # Convert 'date' column to datetime
-    data['date'] = pd.to_datetime(data['date'])
-
-    # Prepare train and test sets
-    train_df = data.iloc[:int(len(data) * 0.8)]  # First 80% of the data
-    test_df = data.iloc[int(len(data) * 0.8):]  # Last 20% of the data
-
-    # Generate exogenous variables for test set
-    future_exog = test_df[['scheduled_pickup', 'scheduled_pickup_lag_7', 'scheduled_pickup_lag_14']]
-
-    # Forecast using SARIMA model
-    forecast_values_boxcox = sarima_model.forecast(steps=len(test_df), exog=future_exog)
-    confidence_intervals_boxcox = pd.DataFrame({
-        0: forecast_values_boxcox - 0.1,  # Placeholder lower bound (adjust with actual)
-        1: forecast_values_boxcox + 0.1   # Placeholder upper bound (adjust with actual)
+    # Combine forecasts and confidence intervals into a DataFrame
+    forecast_df = pd.DataFrame({
+        "Date": future_dates,
+        "Forecasted Values": forecast_values_original,
+        "Lower CI": confidence_intervals_original[:, 0],
+        "Upper CI": confidence_intervals_original[:, 1],
     })
 
-    # Reverse Box-Cox transformation (placeholder for actual lambda)
-    forecast_values_original = np.exp(forecast_values_boxcox)  # Adjust transformation as needed
+    return forecast_values_original, confidence_intervals_original, forecast_df, model_fit
 
-    # Plot the Box-Cox transformed graph
-    st.subheader("Forecast (Box-Cox Transformed Data)")
-    fig1 = plot_boxcox_graph(train_df, test_df, forecast_values_boxcox, confidence_intervals_boxcox)
-    st.pyplot(fig1)
+# Visualize the forecast
+def plot_forecast(forecast_df):
+    """
+    Plot the forecasted values with confidence intervals.
 
-    # Plot the reversed transformation graph
-    st.subheader("Forecast (Original Scale)")
-    fig2 = plot_original_graph(data, test_df, forecast_values_original)
-    st.pyplot(fig2)
-# Page 5: Map
-def map():
-    st.title("Map for Food Hamper Prediction.")
-    st.markdown("""<iframe src="https://www.google.com/maps/d/u/0/embed?mid=1Uf7Agld8GzoH9-fzNNsUpmCN-0X8BEQ&ehbc=2E312F" width="640" height="480"></iframe>
-    """, unsafe_allow_html=True)
-#Page 6
-# Streamlit app
-def chatbot():
-    st.title("Food Hamper Distribution Chatbot")
-    st.write("Reading files from predefined paths...")
-
-    # List of predefined file paths
-    file_paths = ["NQ Report Template_DSN.pdf"
-    ]
-
-    # Prepare data context
-    data_context = ""
-    for file_path in file_paths:
-        try:
-            if file_path.endswith('.csv'):
-                df = pd.read_csv(file_path)
-                data_context += f"\nData from {file_path}:\n{df.head(5).to_string()}\n"
-            elif file_path.endswith('.xlsx'):
-                df = pd.read_excel(file_path)
-                data_context += f"\nData from {file_path}:\n{df.head(5).to_string()}\n"
-            elif file_path.endswith('.pdf'):
-                text = extract_text_from_pdf(file_path)
-                data_context += f"\nExtracted text from {file_path}:\n{text[:1000]}...\n"  # Limit to first 1000 characters
-            st.success(f"Successfully processed {file_path}")
-        except Exception as e:
-            st.error(f"Error processing {file_path}: {e}")
-
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
-
-    user_input = st.text_input("Ask a question about your project:", key="input")
-    if st.button("Send"):
-        if user_input and data_context:
-            st.session_state.chat_history.append({"role": "user", "content": user_input})
-            response = generate_response(user_input, data_context)
-            st.session_state.chat_history.append({"role": "assistant", "content": response})
-        elif not data_context:
-            st.error("No valid data context available. Please check the file paths.")
-
-    for message in st.session_state.chat_history:
-        st.write(f"{message['role'].capitalize()}: {message['content']}")
-# Main App Logic
-def main():
-    st.sidebar.title("Food Hamper Prediction")
-    app_page = st.sidebar.radio(
-        "Select a Page",
-        ["Dashboard", "Data visualizations", "Sarima Model Predictions", "SARIMA Forecast Graphs", "Map for Food Hamper Prediction", "Chatbot"]
+    Parameters:
+        forecast_df (DataFrame): DataFrame containing forecasted values and confidence intervals.
+    """
+    plt.figure(figsize=(12, 6))
+    plt.plot(forecast_df['Date'], forecast_df['Forecasted Values'], label='Forecasted Values', marker='o')
+    plt.fill_between(
+        forecast_df['Date'],
+        forecast_df['Lower CI'],
+        forecast_df['Upper CI'],
+        color='gray',
+        alpha=0.3,
+        label='Confidence Interval'
     )
+    plt.title("Future Forecast of Food Hampers (SARIMA)")
+    plt.xlabel("Date")
+    plt.ylabel("Number of Food Hampers")
+    plt.legend()
+    plt.grid()
+    plt.show()
 
-    if app_page == "Dashboard":
-        dashboard()
-    elif app_page == "Data visualizations":
-        exploratory_data_analysis()
-    elif app_page == "Sarima Model Predictions":
-        machine_learning_modeling()
-    elif app_page == "SARIMA Forecast Graphs":
-        sarima_forecast_graphs()
-    elif app_page == "Map for Food Hamper Prediction":
-        map()
-    elif app_page == "Chatbot":
-        chatbot()
-
+# Main logic
 if __name__ == "__main__":
-    main()
+    # Load data
+    df = pd.read_csv("dataframe.csv", encoding="latin1")
+
+    # Parameters
+    future_steps = 30  # Number of future days to forecast
+    lam = 0.5  # Box-Cox transformation parameter; adjust based on training data
+
+    # Train and forecast using SARIMA
+    forecast_values, confidence_intervals, forecast_df, model_fit = train_and_forecast_sarima(df, future_steps, lam)
+
+    # Display forecasted results
+    print("Forecasted Values:")
+    print(forecast_df)
+
+    # Plot the forecast
+    plot_forecast(forecast_df)
