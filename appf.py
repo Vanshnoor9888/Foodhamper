@@ -218,7 +218,7 @@ def chatbot():
     st.write("Reading files from predefined paths...")
 
     # List of predefined file paths
-    file_paths = ["Final progress report1.pdf", "mergedfoodandclientfinal.xlsx"
+    file_paths = ["Final progress report1 .pdf", "mergedfoodandclientfinal.xlsx"
     ]
 
     # Prepare data context
