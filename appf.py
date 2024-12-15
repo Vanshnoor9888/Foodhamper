@@ -174,38 +174,38 @@ def machine_learning_modeling():
                        f"you will need approximately {int(total_hampers)} food hampers.")
 
 # Page 4: Display SARIMA Forecast Graphs
-def sarima_forecast_graphs():
-    st.title("SARIMA Forecast Graphs")
+# def sarima_forecast_graphs():
+#     st.title("SARIMA Forecast Graphs")
 
-    # Convert 'date' column to datetime
-    data['date'] = pd.to_datetime(data['date'])
+#     # Convert 'date' column to datetime
+#     data['date'] = pd.to_datetime(data['date'])
 
-    # Prepare train and test sets
-    train_df = data.iloc[:int(len(data) * 0.8)]  # First 80% of the data
-    test_df = data.iloc[int(len(data) * 0.8):]  # Last 20% of the data
+#     # Prepare train and test sets
+#     train_df = data.iloc[:int(len(data) * 0.8)]  # First 80% of the data
+#     test_df = data.iloc[int(len(data) * 0.8):]  # Last 20% of the data
 
-    # Generate exogenous variables for test set
-    future_exog = test_df[['scheduled_pickup', 'scheduled_pickup_lag_7', 'scheduled_pickup_lag_14']]
+#     # Generate exogenous variables for test set
+#     future_exog = test_df[['scheduled_pickup', 'scheduled_pickup_lag_7', 'scheduled_pickup_lag_14']]
 
-    # Forecast using SARIMA model
-    forecast_values_boxcox = sarima_model.forecast(steps=len(test_df), exog=future_exog)
-    confidence_intervals_boxcox = pd.DataFrame({
-        0: forecast_values_boxcox - 0.1,  # Placeholder lower bound (adjust with actual)
-        1: forecast_values_boxcox + 0.1   # Placeholder upper bound (adjust with actual)
-    })
+#     # Forecast using SARIMA model
+#     forecast_values_boxcox = sarima_model.forecast(steps=len(test_df), exog=future_exog)
+#     confidence_intervals_boxcox = pd.DataFrame({
+#         0: forecast_values_boxcox - 0.1,  # Placeholder lower bound (adjust with actual)
+#         1: forecast_values_boxcox + 0.1   # Placeholder upper bound (adjust with actual)
+#     })
 
-    # Reverse Box-Cox transformation (placeholder for actual lambda)
-    forecast_values_original = np.exp(forecast_values_boxcox)  # Adjust transformation as needed
+#     # Reverse Box-Cox transformation (placeholder for actual lambda)
+#     forecast_values_original = np.exp(forecast_values_boxcox)  # Adjust transformation as needed
 
-    # Plot the Box-Cox transformed graph
-    st.subheader("Forecast (Box-Cox Transformed Data)")
-    fig1 = plot_boxcox_graph(train_df, test_df, forecast_values_boxcox, confidence_intervals_boxcox)
-    st.pyplot(fig1)
+#     # Plot the Box-Cox transformed graph
+#     st.subheader("Forecast (Box-Cox Transformed Data)")
+#     fig1 = plot_boxcox_graph(train_df, test_df, forecast_values_boxcox, confidence_intervals_boxcox)
+#     st.pyplot(fig1)
 
-    # Plot the reversed transformation graph
-    st.subheader("Forecast (Original Scale)")
-    fig2 = plot_original_graph(data, test_df, forecast_values_original)
-    st.pyplot(fig2)
+#     # Plot the reversed transformation graph
+#     st.subheader("Forecast (Original Scale)")
+#     fig2 = plot_original_graph(data, test_df, forecast_values_original)
+#     st.pyplot(fig2)
 # Page 5: Map
 def map():
     st.title("Map for Food Hamper Prediction.")
@@ -257,7 +257,7 @@ def main():
     st.sidebar.title("Food Hamper Prediction")
     app_page = st.sidebar.radio(
         "Select a Page",
-        ["Dashboard", "Data visualizations", "Sarima Model Predictions", "SARIMA Forecast Graphs", "Map for Food Hamper Prediction", "Chatbot"]
+        ["Dashboard", "Data visualizations", "Sarima Model Predictions", "Map for Food Hamper Prediction", "Chatbot"]
     )
 
     if app_page == "Dashboard":
@@ -266,8 +266,8 @@ def main():
         exploratory_data_analysis()
     elif app_page == "Sarima Model Predictions":
         machine_learning_modeling()
-    elif app_page == "SARIMA Forecast Graphs":
-        sarima_forecast_graphs()
+    # elif app_page == "SARIMA Forecast Graphs":
+    #     sarima_forecast_graphs()
     elif app_page == "Map for Food Hamper Prediction":
         map()
     elif app_page == "Chatbot":
