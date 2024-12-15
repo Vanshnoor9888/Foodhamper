@@ -9,10 +9,10 @@ from scipy.special import inv_boxcox
 from datetime import datetime, timedelta
 import google.generativeai as genai
 import os
-from PyPDF2 import PdfReader
+# from PyPDF2 import PdfReader
 # Set up the API key
-GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY', st.secrets.get("GOOGLE_API_KEY"))
-genai.configure(api_key=GOOGLE_API_KEY)
+# GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY', st.secrets.get("GOOGLE_API_KEY"))
+# genai.configure(api_key=GOOGLE_API_KEY)
 # Function to extract text from PDF
 def extract_text_from_pdf(pdf_file):
     try:
@@ -72,40 +72,44 @@ def plot_original_graph(df, test_df, forecast_values_original):
     plt.xticks(rotation=45)
     return fig
 # Function to generate exogenous variables
-def generate_exog(start_date, days):
+def fetch_historical_exog(start_date, end_date):
     """
-    Generate exogenous values for the specified number of days.
-    Replace this with your logic to fetch or estimate exog variables.
+    Fetch exogenous variables for a given date range from the historical data.
     """
-    future_exog = {
-        "scheduled_pickup": [100 + i * 2 for i in range(days)],
-        "scheduled_pickup_lag_7": [90 + i for i in range(days)],
-        "scheduled_pickup_lag_14": [80 + i for i in range(days)],
-    }
-    return pd.DataFrame(future_exog, index=pd.date_range(start=start_date, periods=days, freq="D"))
+    historical_exog = data.loc[start_date:end_date, ["scheduled_pickup", "scheduled_pickup_lag_7", "scheduled_pickup_lag_14"]]
+    return historical_exog
 
-# Function to predict using SARIMA and plot
-def predict_for_days(start_date, days):
+# Function to predict on past data using SARIMA
+def predict_on_past(start_date, end_date):
     """
-    Predict the total food hampers needed for a specified number of days and display results.
+    Predict the total food hampers needed for a specified past date range and display results.
     """
     try:
-        # Generate exogenous variables
-        future_exog = generate_exog(start_date, days)
+        # Fetch historical exogenous variables
+        historical_exog = fetch_historical_exog(start_date, end_date)
+        
+        # Define the number of days based on the date range
+        days = (pd.to_datetime(end_date) - pd.to_datetime(start_date)).days + 1
 
         # Forecast using SARIMA model
-        predictions = sarima_model.forecast(steps=days, exog=future_exog)
+        predictions = sarima_model.forecast(steps=days, exog=historical_exog)
 
         # Create a DataFrame for predictions
-        forecast_dates = future_exog.index
+        forecast_dates = historical_exog.index
         prediction_df = pd.DataFrame({"Date": forecast_dates, "Predicted Hampers": predictions})
 
-        # Plot the predictions
+        # Calculate metrics (e.g., MSE)
+        actual_values = data.loc[start_date:end_date, "actual_pickup_boxcox"]
+        mse = mean_squared_error(actual_values, predictions)
+        print(f"Mean Squared Error on Past Data: {mse}")
+
+        # Plot the predictions against actual values
         fig, ax = plt.subplots(figsize=(10, 6))
-        ax.plot(forecast_dates, predictions, label="Forecast", marker="o")
+        ax.plot(forecast_dates, predictions, label="Predicted", marker="o")
+        ax.plot(forecast_dates, actual_values, label="Actual", marker="x")
         ax.set_xlabel("Date")
-        ax.set_ylabel("Predicted Food Hampers")
-        ax.set_title("SARIMA Model Forecast")
+        ax.set_ylabel("Food Hampers")
+        ax.set_title("SARIMA Model Forecast vs Actuals (Past Data)")
         ax.legend()
         ax.grid(True)
 
@@ -117,11 +121,19 @@ def predict_for_days(start_date, days):
         print(f"Error during prediction: {str(e)}")
         return None, None
 
+# Example usage
+start_date = "2023-01-01"
+end_date = "2023-01-15"
+prediction_df, fig = predict_on_past(start_date, end_date)
+
+if prediction_df is not None:
+    print(prediction_df)
+    plt.show()
 # Streamlit application
 # Page 1: Dashboard
 def dashboard():
         # Add an image
-    st.image("downloads.png", use_column_width=True)
+    # st.image("downloads.png", use_column_width=True)
 
     st.subheader("💡 Project Overview:")
     inspiration = '''Project Overview We are collaborating on a machine learning project with a food hamper
@@ -153,25 +165,53 @@ def machine_learning_modeling():
     st.title("Food Hamper Forecasting")
 
     # Subsection: SARIMA Model for Food Hampers
-    st.subheader("Food Hamper Forecasting (SARIMA Model)")
+    st.subheader("Food Hamper Prediction (SARIMA Model)")
 
-    # Input for start date
-    start_date = st.date_input("Select the start date:", datetime.today())
+    # Input for selecting prediction mode (past data or future forecast)
+    prediction_mode = st.radio(
+        "Select prediction mode:",
+        ("Predict for past data", "Forecast future data")
+    )
 
-    # Input for the number of days to forecast
-    days = st.number_input("Enter the number of days to forecast:", min_value=1, step=1, value=1)
+    # Input for start and end dates (for past predictions)
+    if prediction_mode == "Predict for past data":
+        start_date = st.date_input("Select the start date for past predictions:", datetime.today())
+        end_date = st.date_input("Select the end date for past predictions:", datetime.today())
 
-    if st.button("Predict Food Hampers"):
-        # Call the prediction function with the selected start date and number of days
-        predictions_df, fig = predict_for_days(start_date.strftime("%Y-%m-%d"), int(days))
+        if st.button("Predict Past Data"):
+            if start_date > end_date:
+                st.error("Start date cannot be after end date. Please select valid dates.")
+            else:
+                # Call the past prediction function
+                predictions_df, fig = predict_on_past(start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
+                if predictions_df is not None:
+                    st.pyplot(fig)
+                    st.write("### Predicted vs Actual Food Hampers")
+                    st.write(predictions_df)
+                    total_hampers = predictions_df["Predicted Hampers"].sum()
+                    st.success(f"From {start_date} to {end_date}, "
+                               f"the model predicted approximately {int(total_hampers)} food hampers.")
+                else:
+                    st.error("Prediction failed. Please check the model or input data.")
 
-        if predictions_df is not None:
-            st.pyplot(fig)
-            st.write("### Forecasted Food Hampers")
-            st.write(predictions_df)
-            total_hampers = predictions_df["Predicted Hampers"].sum()
-            st.success(f"For {days} days starting from {start_date}, "
-                       f"you will need approximately {int(total_hampers)} food hampers.")
+    # Input for future predictions
+    elif prediction_mode == "Forecast future data":
+        start_date = st.date_input("Select the start date for the forecast:", datetime.today())
+        days = st.number_input("Enter the number of days to forecast:", min_value=1, step=1, value=1)
+
+        if st.button("Forecast Future Data"):
+            # Call the future forecast function
+            predictions_df, fig = predict_for_days(start_date.strftime("%Y-%m-%d"), int(days))
+            if predictions_df is not None:
+                st.pyplot(fig)
+                st.write("### Forecasted Food Hampers")
+                st.write(predictions_df)
+                total_hampers = predictions_df["Predicted Hampers"].sum()
+                st.success(f"For {days} days starting from {start_date}, "
+                           f"the model forecasts approximately {int(total_hampers)} food hampers.")
+            else:
+                st.error("Forecast failed. Please check the model or input data.")
+
 
 # Page 4: Display SARIMA Forecast Graphs
 def sarima_forecast_graphs():
@@ -206,7 +246,7 @@ def sarima_forecast_graphs():
     st.subheader("Forecast (Original Scale)")
     fig2 = plot_original_graph(data, test_df, forecast_values_original)
     st.pyplot(fig2)
-# Page 5: Map 
+# Page 5: Map
 def map():
     st.title("Map for Food Hamper Prediction.")
     st.markdown("""<iframe src="https://www.google.com/maps/d/u/0/embed?mid=1Uf7Agld8GzoH9-fzNNsUpmCN-0X8BEQ&ehbc=2E312F" width="640" height="480"></iframe>
@@ -218,8 +258,7 @@ def chatbot():
     st.write("Reading files from predefined paths...")
 
     # List of predefined file paths
-    file_paths = ["mergedfoodandclientfinal.xlsx",
-                  "Final progress report1 .pdf"
+    file_paths = ["NQ Report Template_DSN.pdf"
     ]
 
     # Prepare data context
@@ -257,7 +296,7 @@ def chatbot():
 def main():
     st.sidebar.title("Food Hamper Prediction")
     app_page = st.sidebar.radio(
-        "Select a Page", 
+        "Select a Page",
         ["Dashboard", "Data visualizations", "Sarima Model Predictions", "SARIMA Forecast Graphs", "Map for Food Hamper Prediction", "Chatbot"]
     )
 
