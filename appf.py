@@ -175,44 +175,64 @@ def machine_learning_modeling():
 
     # Input for start and end dates (for past predictions)
     if prediction_mode == "Predict for past data":
-        start_date = st.date_input("Select the start date for past predictions:", datetime.today())
-        end_date = st.date_input("Select the end date for past predictions:", datetime.today())
+        start_date = st.date_input(
+            "Select the start date for past predictions:",
+            datetime.today().date()
+        )
+        end_date = st.date_input(
+            "Select the end date for past predictions:",
+            datetime.today().date()
+        )
 
         if st.button("Predict Past Data"):
             if start_date > end_date:
                 st.error("Start date cannot be after end date. Please select valid dates.")
             else:
                 # Call the past prediction function
-                predictions_df, fig = predict_on_past(start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
+                predictions_df, fig = predict_on_past(
+                    start_date.strftime("%Y-%m-%d"),
+                    end_date.strftime("%Y-%m-%d")
+                )
                 if predictions_df is not None:
                     st.pyplot(fig)
                     st.write("### Predicted vs Actual Food Hampers")
                     st.write(predictions_df)
                     total_hampers = predictions_df["Predicted Hampers"].sum()
-                    st.success(f"From {start_date} to {end_date}, "
-                               f"the model predicted approximately {int(total_hampers)} food hampers.")
+                    st.success(
+                        f"From {start_date} to {end_date}, "
+                        f"the model predicted approximately {int(total_hampers)} food hampers."
+                    )
                 else:
                     st.error("Prediction failed. Please check the model or input data.")
 
     # Input for future predictions
     elif prediction_mode == "Forecast future data":
-        start_date = st.date_input("Select the start date for the forecast:", datetime.today())
-        days = st.number_input("Enter the number of days to forecast:", min_value=1, step=1, value=1)
+        start_date = st.date_input(
+            "Select the start date for the forecast:",
+            datetime.today().date()
+        )
+        days = st.number_input(
+            "Enter the number of days to forecast:",
+            min_value=1, step=1, value=1
+        )
 
         if st.button("Forecast Future Data"):
             # Call the future forecast function
-            predictions_df, fig = predict_for_days(start_date.strftime("%Y-%m-%d"), int(days))
+            predictions_df, fig = predict_for_days(
+                start_date.strftime("%Y-%m-%d"),
+                int(days)
+            )
             if predictions_df is not None:
                 st.pyplot(fig)
                 st.write("### Forecasted Food Hampers")
                 st.write(predictions_df)
                 total_hampers = predictions_df["Predicted Hampers"].sum()
-                st.success(f"For {days} days starting from {start_date}, "
-                           f"the model forecasts approximately {int(total_hampers)} food hampers.")
+                st.success(
+                    f"For {days} days starting from {start_date}, "
+                    f"the model forecasts approximately {int(total_hampers)} food hampers."
+                )
             else:
                 st.error("Forecast failed. Please check the model or input data.")
-
-
 # Page 4: Display SARIMA Forecast Graphs
 def sarima_forecast_graphs():
     st.title("SARIMA Forecast Graphs")
